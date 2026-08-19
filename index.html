@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Video Generator</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #0f172a; color: white; text-align: center; padding: 40px 20px; }
+        .container { max-width: 600px; margin: auto; background: #1e293b; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+        h1 { color: #38bdf8; margin-bottom: 20px; }
+        input, select, button { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: none; font-size: 16px; box-sizing: border-box; }
+        input[type="file"] { background: #334155; color: white; cursor: pointer; }
+        select { background: #334155; color: white; }
+        button { background: #0284c7; color: white; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        button:hover { background: #0369a1; }
+        #status { margin-top: 20px; font-weight: bold; color: #facc15; }
+        video { width: 100%; margin-top: 20px; border-radius: 8px; display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🎬 AI Video Generator</h1>
+    <p>Upload a video to apply AI styles in chunks!</p>
+    
+    <input type="file" id="videoInput" accept="video/*">
+    
+    <select id="styleSelect">
+        <option value="anime">Anime Style</option>
+        <option value="realistic">Cinematic Realistic</option>
+        <option value="comic">Comic Book Style</option>
+    </select>
+    
+    <button onclick="processVideo()">🚀 Generate AI Video</button>
+    
+    <div id="status"></div>
+    <video id="videoResult" controls></video>
+</div>
+
+<script>
+    // Live Cloudflare Backend URL Attached
+    const BACKEND_URL = "https://adjustable-shape-dates-remark.trycloudflare.com";
+
+    async function processVideo() {
+        const fileInput = document.getElementById('videoInput');
+        const styleSelect = document.getElementById('styleSelect').value;
+        const statusDiv = document.getElementById('status');
+        const resultVideo = document.getElementById('videoResult');
+
+        if (fileInput.files.length === 0) {
+            alert("Kripya pehle ek video upload karein!");
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append("file", fileInput.files[0]);
+        formData.append("style", styleSelect);
+
+        statusDiv.innerText = "⏳ Video upload ho rahi hai aur chunks mein process ho rahi hai... Kripya wait karein.";
+        resultVideo.style.display = "none";
+
+        try {
+            const response = await fetch(`${BACKEND_URL}/process-video`, {
+                method: "POST",
+                body: formData
+            });
+
+            if (!response.ok) throw new Error("Processing fail ho gayi!");
+
+            const blob = await response.blob();
+            const videoUrl = URL.createObjectURL(blob);
+            
+            resultVideo.src = videoUrl;
+            resultVideo.style.display = "block";
+            statusDiv.innerText = "🎉 Video Generation Complete!";
+        } catch (error) {
+            console.error(error);
+            statusDiv.innerText = "❌ Error: Backend connection fail hua ya URL change ho gaya hai.";
+        }
+    }
+</script>
+
+</body>
+</html>
