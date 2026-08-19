@@ -5,77 +5,153 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Video Generator</title>
     <style>
-        body { font-family: Arial, sans-serif; background-color: #0f172a; color: white; text-align: center; padding: 40px 20px; }
-        .container { max-width: 600px; margin: auto; background: #1e293b; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
-        h1 { color: #38bdf8; margin-bottom: 20px; }
-        input, select, button { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: none; font-size: 16px; box-sizing: border-box; }
-        input[type="file"] { background: #334155; color: white; cursor: pointer; }
-        select { background: #334155; color: white; }
-        button { background: #0284c7; color: white; font-weight: bold; cursor: pointer; transition: 0.3s; }
-        button:hover { background: #0369a1; }
-        #status { margin-top: 20px; font-weight: bold; color: #facc15; }
-        video { width: 100%; margin-top: 20px; border-radius: 8px; display: none; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #121212;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: #1e1e1e;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.5);
+            text-align: center;
+            width: 90%;
+            max-width: 500px;
+        }
+        h2 {
+            margin-bottom: 5px;
+            color: #4da8da;
+        }
+        p {
+            font-size: 14px;
+            color: #aaaaaa;
+            margin-bottom: 25px;
+        }
+        input[type="file"], select, button {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            border: 1px solid #333;
+            background-color: #2a2a2a;
+            color: white;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #555;
+            cursor: not-allowed;
+        }
+        #status {
+            margin-top: 15px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .error { color: #ff4d4d; }
+        .success { color: #00cc66; }
+        .loading { color: #ffcc00; }
+        video {
+            width: 100%;
+            margin-top: 20px;
+            border-radius: 8px;
+            display: none;
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>🎬 AI Video Generator</h1>
+    <h2>🎬 AI Video Generator</h2>
     <p>Upload a video to apply AI styles in chunks!</p>
+
+    <input type="file" id="videoInput" accept="video/mp4,video/x-m4v,video/*">
     
-    <input type="file" id="videoInput" accept="video/*">
-    
-    <select id="styleSelect">
-        <option value="anime">Anime Style</option>
-        <option value="realistic">Cinematic Realistic</option>
-        <option value="comic">Comic Book Style</option>
+    <select id="styleInput">
+        <option value="Cinematic Realistic">Cinematic Realistic</option>
+        <option value="Anime Style">Anime Style</option>
+        <option value="Cyberpunk">Cyberpunk</option>
+        <option value="Cartoon 3D">Cartoon 3D</option>
     </select>
-    
-    <button onclick="processVideo()">🚀 Generate AI Video</button>
-    
+
+    <button id="generateBtn" onclick="generateVideo()">🚀 Generate AI Video</button>
+
     <div id="status"></div>
-    <video id="videoResult" controls></video>
+    <video id="resultVideo" controls></video>
 </div>
 
 <script>
-    // Live Cloudflare Backend URL Attached
-    const BACKEND_URL = "https://adjustable-shape-dates-remark.trycloudflare.com";
+    // ========================================================
+    // 👇 YAHAN NEECHE APNA NAYA CLOUDFLARE LINK PASTE KAREIN 👇
+    // ========================================================
+    const BACKEND_URL = "YAHAN_APNA_NAYA_LINK_PASTE_KAREIN"; 
+    // Example: const BACKEND_URL = "https://adjustable-shape-dates.trycloudflare.com";
 
-    async function processVideo() {
+    async function generateVideo() {
         const fileInput = document.getElementById('videoInput');
-        const styleSelect = document.getElementById('styleSelect').value;
+        const styleInput = document.getElementById('styleInput');
         const statusDiv = document.getElementById('status');
-        const resultVideo = document.getElementById('videoResult');
+        const generateBtn = document.getElementById('generateBtn');
+        const resultVideo = document.getElementById('resultVideo');
 
-        if (fileInput.files.length === 0) {
-            alert("Kripya pehle ek video upload karein!");
+        if (!fileInput.files.length) {
+            statusDiv.innerHTML = "<span class='error'>❌ Please select a video file first!</span>";
             return;
         }
 
-        const formData = new FormData();
-        formData.append("file", fileInput.files[0]);
-        formData.append("style", styleSelect);
+        const file = fileInput.files[0];
+        const style = styleInput.value;
 
-        statusDiv.innerText = "⏳ Video upload ho rahi hai aur chunks mein process ho rahi hai... Kripya wait karein.";
+        // UI Updates for Loading
+        statusDiv.innerHTML = "<span class='loading'>⏳ Uploading & Processing... Isme 3-5 minute lag sakte hain, kripya wait karein!</span>";
+        generateBtn.disabled = true;
         resultVideo.style.display = "none";
 
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("prompt", style); 
+
         try {
-            const response = await fetch(`${BACKEND_URL}/process-video`, {
+            // Backend pe Request bhejna
+            const response = await fetch(`${BACKEND_URL}/generate`, {
                 method: "POST",
                 body: formData
             });
 
-            if (!response.ok) throw new Error("Processing fail ho gayi!");
+            if (!response.ok) {
+                throw new Error("Backend connection fail hua ya URL change ho gaya hai");
+            }
 
-            const blob = await response.blob();
-            const videoUrl = URL.createObjectURL(blob);
-            
+            // Video receive karna
+            const videoBlob = await response.blob();
+            const videoUrl = URL.createObjectURL(videoBlob);
+
+            // Output dikhana
             resultVideo.src = videoUrl;
             resultVideo.style.display = "block";
-            statusDiv.innerText = "🎉 Video Generation Complete!";
+            statusDiv.innerHTML = "<span class='success'>✅ AI Video Generated Successfully!</span>";
+
         } catch (error) {
             console.error(error);
-            statusDiv.innerText = "❌ Error: Backend connection fail hua ya URL change ho gaya hai.";
+            statusDiv.innerHTML = `<span class='error'>❌ Error: ${error.message}</span>`;
+        } finally {
+            generateBtn.disabled = false;
         }
     }
 </script>
