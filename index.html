@@ -23,7 +23,7 @@
 </div>
 
 <script>
-    const TOKEN = "r8_"+"UlOol72VJzzT6dmkRAUI7AceRJ665DQ34yBLV"; // Yahan apna token dalein
+    const TOKEN = "r8_"+"UlOol72VJzzT6dmkRAUI7AceRJ665DQ34yBLV";
 
     async function run() {
         const btn = document.getElementById('btn');
@@ -31,7 +31,7 @@
         const vid = document.getElementById('vid');
         
         if(TOKEN === "r8_"+"UlOol72VJzzT6dmkRAUI7AceRJ665DQ34yBLV") {
-            alert("Pehle apna Replicate token daliye code mein!");
+            alert("r8_"+"UlOol72VJzzT6dmkRAUI7AceRJ665DQ34yBLV");
             return;
         }
 
@@ -63,7 +63,7 @@
 
             const checkUrl = data.urls ? data.urls.get : null;
             if (!checkUrl) {
-                throw new Error("Invalid API response from server.");
+                throw new Error("valid API response from server.");
             }
 
             status.innerText = "Video render ho rahi hai (30 seconds lag sakte hain)...";
