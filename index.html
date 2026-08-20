@@ -7,94 +7,96 @@
     <style>
         body { background-color: #0f172a; color: white; font-family: sans-serif; display: flex; justify-content: center; padding-top: 50px; }
         .container { background: #1e293b; padding: 30px; border-radius: 16px; width: 90%; max-width: 400px; text-align: center; }
-        input { width: 100%; padding: 10px; margin: 10px 0; border-radius: 5px; border: none; background: #0f172a; color: white; }
-        button { width: 100%; padding: 10px; background: #2563eb; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 5px; border: none; background: #0f172a; color: white; font-size: 14px; }
+        button { width: 100%; padding: 12px; background: #2563eb; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold; }
+        button:hover { background: #1d4ed8; }
         #status { margin-top: 15px; color: #38bdf8; font-size: 14px; }
         video { width: 100%; margin-top: 15px; display: none; border-radius: 8px; }
     </style>
 </head>
 <body>
+
 <div class="container">
-    <h1>AI Video Studio</h1>
-    <input type="text" id="prompt" value="A futuristic astronaut floating in space">
-    <button id="btn" onclick="run()">Generate Video</button>
+    <h2>✨ AI Video Studio</h2>
+    <input type="text" id="prompt" value="A futuristic astronaut floating in space, cinematic">
+    <button id="btn" onclick="generateVideo()">Generate Video 🚀</button>
     <div id="status"></div>
     <video id="vid" controls></video>
 </div>
 
 <script>
-    const TOKEN = "r8_"+"UlOol72VJzzT6dmkRAUI7AceRJ665DQ34yBLV";
+    // 👇 YAHAN APNA TOKEN DAALEIN (Jaise likha hai waise hi rehne dein)
+    const MY_TOKEN = "r8_" + "UlOol72VJzzT6dmkRAUI7AceRJ665DQ34yBLV";
 
-    async function run() {
+    async function generateVideo() {
         const btn = document.getElementById('btn');
         const status = document.getElementById('status');
         const vid = document.getElementById('vid');
-        
-        if(TOKEN === "r8_"+"UlOol72VJzzT6dmkRAUI7AceRJ665DQ34yBLV") {
-            alert("r8_"+"UlOol72VJzzT6dmkRAUI7AceRJ665DQ34yBLV");
-            return;
-        }
+        const promptText = document.getElementById('prompt').value;
 
         btn.disabled = true;
-        status.innerText = "Request bhej rahe hain...";
+        status.innerText = "⏳ Request bhej rahe hain...";
         vid.style.display = "none";
 
         try {
-            // Replicate standard prediction endpoint with proper version hash
+            // Step 1: Send Request to Replicate via CORS Proxy
             const response = await fetch("https://corsproxy.io/?https://api.replicate.com/v1/predictions", {
                 method: "POST",
                 headers: {
-                    "Authorization": `Bearer ${TOKEN.trim()}`,
+                    "Authorization": `Bearer ${MY_TOKEN}`,
                     "Content-Type": "application/json"
                 },
                 body: JSON.stringify({
                     version: "0b1d620584b4d0ed154b81048b26f58f43eb91187d90479f61dd66c42a20b206",
-                    input: {
-                        prompt: document.getElementById('prompt').value
-                    }
+                    input: { prompt: promptText }
                 })
             });
 
             const data = await response.json();
             
-            if (data.detail) {
-                throw new Error(data.detail);
+            if (data.error || data.detail) {
+                throw new Error(data.error || data.detail);
             }
 
-            const checkUrl = data.urls ? data.urls.get : null;
-            if (!checkUrl) {
-                throw new Error("valid API response from server.");
+            const pollUrl = data.urls ? data.urls.get : null;
+            if (!pollUrl) {
+                throw new Error("Server se sahi jawab nahi mila.");
             }
 
-            status.innerText = "Video render ho rahi hai (30 seconds lag sakte hain)...";
+            status.innerText = "🎨 Video render ho rahi hai (30-40 seconds wait karein)...";
 
+            // Step 2: Check status every 3 seconds until video is ready
             let timer = setInterval(async () => {
-                const pollRes = await fetch("https://corsproxy.io/?" + checkUrl, {
-                    headers: {
-                        "Authorization": `Bearer ${TOKEN.trim()}`
-                    }
-                });
-                const pollData = await pollRes.json();
+                try {
+                    const pollRes = await fetch("https://corsproxy.io/?" + pollUrl, {
+                        headers: { "Authorization": `Bearer ${MY_TOKEN}` }
+                    });
+                    const pollData = await pollRes.json();
 
-                if (pollData.status === "succeeded") {
-                    clearInterval(timer);
-                    vid.src = pollData.output;
-                    vid.style.display = "block";
-                    status.innerText = "✅ Video Ban Gayi!";
-                    btn.disabled = false;
-                } else if (pollData.status === "failed") {
-                    clearInterval(timer);
-                    throw new Error("Video banane mein server par error aa gaya.");
-                } else {
-                    status.innerText = `Status: ${pollData.status}... kripya wait karein.`;
+                    if (pollData.status === "succeeded") {
+                        clearInterval(timer);
+                        vid.src = pollData.output;
+                        vid.style.display = "block";
+                        status.innerText = "✅ Video Ban Kar Tayar Hai!";
+                        btn.disabled = false;
+                    } else if (pollData.status === "failed") {
+                        clearInterval(timer);
+                        status.innerText = "❌ Error: Video generation failed.";
+                        btn.disabled = false;
+                    } else {
+                        status.innerText = `⏳ Status: ${pollData.status}... kripya wait karein.`;
+                    }
+                } catch (err) {
+                    // Ignore minor polling network glitches
                 }
             }, 3000);
 
         } catch (e) {
-            status.innerText = "Error: " + e.message;
+            status.innerText = "❌ Error: " + e.message;
             btn.disabled = false;
         }
     }
 </script>
+
 </body>
 </html>
