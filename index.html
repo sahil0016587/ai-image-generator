@@ -44,7 +44,7 @@
             font-size: 14px;
             color: #94a3b8;
         }
-        input[type="text"], select {
+        input[type="text"] {
             width: 100%;
             padding: 12px;
             border-radius: 8px;
@@ -103,8 +103,8 @@
 </div>
 
 <script>
-    // ⚠️ REPLACE THIS WITH YOUR ACTUAL REPLICATE TOKEN (r8_...)
-    const REPLICATE_API_TOKEN = "r8_"+"UlOol72VJzzT6dmkRAUI7AceRJ665DQ34yBLV";
+    // ⚠️ ENTER YOUR TOKEN HERE (Make sure there are no extra spaces)
+    const REPLICATE_API_TOKEN = "PASTE_YOUR_REPLICATE_TOKEN_HERE";
 
     async function generateVideo() {
         const promptInput = document.getElementById('prompt').value;
@@ -117,22 +117,24 @@
             return;
         }
 
-        if (REPLICATE_API_TOKEN === "PASTE_YOUR_REPLICATE_TOKEN_HERE" || !REPLICATE_API_TOKEN) {
-            alert("Please add your Replicate API Token in the code!");
+        if (REPLICATE_API_TOKEN === "r8_"+"UlOol72VJzzT6dmkRAUI7AceRJ665DQ34yBLV" || !REPLICATE_API_TOKEN) {
+            alert("Please add your Replicate API Token!");
             return;
         }
 
         generateBtn.disabled = true;
-        statusDiv.innerText = "⏳ Initiating Cloud AI Server...";
+        statusDiv.innerText = "⏳ Connecting to Cloud AI...";
         videoElement.style.display = "none";
 
         try {
-            // Step 1: Start Video Generation
+            // Using cors proxy mode fix for browser fetch
             const response = await fetch("https://api.replicate.com/v1/predictions", {
                 method: "POST",
+                mode: "cors",
                 headers: {
-                    "Authorization": `Bearer ${REPLICATE_API_TOKEN}`,
-                    "Content-Type": "application/json"
+                    "Authorization": `Bearer ${REPLICATE_API_TOKEN.trim()}`,
+                    "Content-Type": "application/json",
+                    "Prefer": "wait"
                 },
                 body: JSON.stringify({
                     version: "0b1d620584b4d0ed154b81048b26f58f43eb91187d90479f61dd66c42a20b206",
@@ -140,36 +142,49 @@
                 })
             });
 
+            if (!response.ok) {
+                throw new Error(`Server connection failed! Status: ${response.status}`);
+            }
+
             const data = await response.json();
 
             if (data.error) {
                 throw new Error(data.error);
             }
 
-            const getUrl = data.urls.get;
-            statusDiv.innerText = "🎨 Rendering Video (This takes ~30 seconds)...";
+            if (data.output) {
+                // If it finishes instantly
+                statusDiv.innerText = "✅ Video Generated Successfully!";
+                videoElement.src = data.output;
+                videoElement.style.display = "block";
+            } else {
+                // If it needs polling
+                const getUrl = data.urls.get;
+                statusDiv.innerText = "🎨 Rendering Video (This takes ~30 seconds)...";
 
-            // Step 2: Poll for Result
-            let completed = false;
-            while (!completed) {
-                await new Promise(r => setTimeout(r, 3000));
-                
-                const checkStatus = await fetch(getUrl, {
-                    headers: {
-                        "Authorization": `Bearer ${REPLICATE_API_TOKEN}`
+                let completed = false;
+                while (!completed) {
+                    await new Promise(r => setTimeout(r, 3000));
+                    
+                    const checkStatus = await fetch(getUrl, {
+                        method: "GET",
+                        mode: "cors",
+                        headers: {
+                            "Authorization": `Bearer ${REPLICATE_API_TOKEN.trim()}`
+                        }
+                    });
+                    const result = await checkStatus.json();
+
+                    if (result.status === "succeeded") {
+                        completed = true;
+                        statusDiv.innerText = "✅ Video Generated Successfully!";
+                        videoElement.src = result.output;
+                        videoElement.style.display = "block";
+                    } else if (result.status === "failed") {
+                        throw new Error("Video generation failed on server.");
+                    } else {
+                        statusDiv.innerText = `⏳ Status: ${result.status}... Please wait.`;
                     }
-                });
-                const result = await checkStatus.json();
-
-                if (result.status === "succeeded") {
-                    completed = true;
-                    statusDiv.innerText = "✅ Video Generated Successfully!";
-                    videoElement.src = result.output;
-                    videoElement.style.display = "block";
-                } else if (result.status === "failed") {
-                    throw new Error("Video generation failed on server.");
-                } else {
-                    statusDiv.innerText = `⏳ Status: ${result.status}... Please wait.`;
                 }
             }
 
